@@ -1,19 +1,78 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* Drive `dark:` utilities from a class on <html> rather than the OS setting,
+   so the in-app theme toggle actually controls them. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
+  --font-display: "Space Grotesk", "Vazirmatn", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+
+  /* Semantic surface tokens. Redefined under html.dark below, which is what
+     makes dark mode work without duplicating every utility class. */
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-raised: #f8fafc;
+  --color-line: #e2e8f0;
+  --color-hairline: #f1f5f9;
+  --color-ink: #0f172a;
+  --color-ink-soft: #334155;
+  --color-muted: #64748b;
+  --color-faint: #94a3b8;
+  --color-inverse: #0f172a;
+  --color-inverse-ink: #f8fafc;
 }
 
-/* Custom RTL-supporting scrollbar styling and transitions */
-.rtl-reverse-grid {
-  direction: rtl;
+/* Dark palette. html.dark outranks :root, so the tokens simply swap. */
+html.dark {
+  --color-canvas: #0b1120;
+  --color-surface: #131c2f;
+  --color-raised: #1b2740;
+  --color-line: #2a3852;
+  --color-hairline: #223049;
+  --color-ink: #e8eef7;
+  --color-ink-soft: #c2cfe0;
+  --color-muted: #94a3b8;
+  --color-faint: #7c8ba1;
+  --color-inverse: #050a14;
+  --color-inverse-ink: #e8eef7;
+  color-scheme: dark;
 }
 
 body {
-  background-color: #f8fafc;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
+}
+
+/* Logical-property helpers so RTL mirrors correctly without extra classes. */
+[dir="rtl"] .flip-x { transform: scaleX(-1); }
+
+/* Visible keyboard focus everywhere, including on custom-styled controls. */
+:where(button, select, input, a, [tabindex]):focus-visible {
+  outline: 2px solid #0d9488;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Recharts injects its own focus outline on chart surfaces; suppress it. */
+.recharts-wrapper:focus,
+.recharts-surface:focus { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Keep printed reports readable: drop chrome, force a light canvas. */
+@media print {
+  .no-print { display: none !important; }
+  html.dark { color-scheme: light; }
+  body { background: #fff; }
 }

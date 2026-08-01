@@ -119,13 +119,46 @@ export const HEALTHCARE_DATA: HealthcareRecord[] = [
   { country: "Jordan", year: 2023, lifeExpectancy: 74.8, expenditurePctGdp: 7.6, infantMortality: 10.8, physiciansPer1000: 2.4, hospitalBedsPer1000: 1.7, isGcc: false }
 ];
 
-export const INDICATORS = [
-  { id: "lifeExpectancy", labelKey: "metricLifeExpectancy", unit: "years" },
-  { id: "expenditurePctGdp", labelKey: "metricExpenditure", unit: "%" },
-  { id: "infantMortality", labelKey: "metricInfantMortality", unit: "per 1,000" },
-  { id: "physiciansPer1000", labelKey: "metricPhysicians", unit: "per 1,000" },
-  { id: "hospitalBedsPer1000", labelKey: "metricHospitalBeds", unit: "per 1,000" }
+/** Every year present in the dataset, ascending. Derived so it can never drift. */
+export const YEARS: number[] = Array.from(
+  new Set(HEALTHCARE_DATA.map((d) => d.year))
+).sort((a, b) => a - b);
+
+/** Total observation count, derived rather than hardcoded. */
+export const TOTAL_RECORDS = HEALTHCARE_DATA.length;
+
+export type IndicatorId =
+  | "lifeExpectancy"
+  | "expenditurePctGdp"
+  | "infantMortality"
+  | "physiciansPer1000"
+  | "hospitalBedsPer1000";
+
+export interface IndicatorConfig {
+  id: IndicatorId;
+  labelKey: string;
+  shortLabelKey: string;
+  unit: string;
+  /** True when a lower value is the better public-health outcome. */
+  lowerIsBetter: boolean;
+  /** Sensible decimal places for display. */
+  precision: number;
+}
+
+export const INDICATORS: IndicatorConfig[] = [
+  { id: "lifeExpectancy", labelKey: "metricLifeExpectancy", shortLabelKey: "metricLifeExpectancyShort", unit: "years", lowerIsBetter: false, precision: 1 },
+  { id: "expenditurePctGdp", labelKey: "metricExpenditure", shortLabelKey: "metricExpenditureShort", unit: "%", lowerIsBetter: false, precision: 1 },
+  { id: "infantMortality", labelKey: "metricInfantMortality", shortLabelKey: "metricInfantMortalityShort", unit: "per 1,000", lowerIsBetter: true, precision: 1 },
+  { id: "physiciansPer1000", labelKey: "metricPhysicians", shortLabelKey: "metricPhysiciansShort", unit: "per 1,000", lowerIsBetter: false, precision: 1 },
+  { id: "hospitalBedsPer1000", labelKey: "metricHospitalBeds", shortLabelKey: "metricHospitalBedsShort", unit: "per 1,000", lowerIsBetter: false, precision: 1 }
 ];
+
+/** Lookup helper so components never have to scan the array by hand. */
+export const INDICATOR_BY_ID: Record<IndicatorId, IndicatorConfig> =
+  INDICATORS.reduce((acc, indicator) => {
+    acc[indicator.id] = indicator;
+    return acc;
+  }, {} as Record<IndicatorId, IndicatorConfig>);
 
 // Complete Multi-lingual Translations
 export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
@@ -179,7 +212,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Statistical Engine
     statIntro: "Real-Time Statistical Computation Engine",
-    statIntroDesc: "This module executes real-time parametric statistical calculations on the selected data subsets, including Pearson Pearson correlation formula ($r$), Ordinary Least Squares linear regression model, and two-sample sub-group hypothesis comparison.",
+    statIntroDesc: "This module executes real-time parametric statistical calculations on the selected data subsets, including the Pearson correlation coefficient ($r$), Ordinary Least Squares linear regression model, and two-sample sub-group hypothesis comparison.",
     
     correlationTab: "1. Pearson Correlation Analysis",
     correlationSub: "Measuring the linear linkage strength between inputs and outputs",
@@ -227,7 +260,55 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     olsDesc: "Determines the single unique straight line that minimizes the sum of squared vertical distances from the observed data points to the model line:",
     olsMath: "Y = β₀ + β₁X + ε, where β₁ = Σ[(X_i - X_mean)(Y_i - Y_mean)] / Σ(X_i - X_mean)²",
     dataSources: "Curated Scientific Reference Dataset",
-    dataSourcesDesc: "Multi-jurisdictional empirical parameters are adapted from real-world regional trends documented by the World Health Organization (WHO) and World Bank Development Database. The values incorporate historical disruptions (such as pandemic-era mortality impacts) to demonstrate authentic real-time mathematical changes under dynamic analysis."
+    dataSourcesDesc: "Multi-jurisdictional empirical parameters are adapted from real-world regional trends documented by the World Health Organization (WHO) and World Bank Development Database. The values incorporate historical disruptions (such as pandemic-era mortality impacts) to demonstrate authentic real-time mathematical changes under dynamic analysis.",
+
+    // --- Added: scope, inference, export and theme strings ---
+    selectIndicator: "Indicator",
+    scopeTitle: "Analysis scope",
+    scopeDesc: "Every figure below is recalculated from the observations selected here.",
+    scopeCountries: "Countries",
+    scopeYears: "Years",
+    scopeObservations: "observations in scope",
+    scopePresetAll: "All countries",
+    scopePresetGcc: "GCC only",
+    scopePresetNonGcc: "Non-GCC only",
+    scopeReset: "Reset",
+    scopeTooFew: "Select at least three observations to run these calculations.",
+    noDataScope: "No observations match the current scope.",
+    selectAll: "Select all",
+    clearAll: "Clear",
+    exportCsv: "Download CSV",
+    exportJson: "Download JSON",
+    copyLink: "Copy link to this view",
+    copied: "Copied",
+    pValueLabel: "p-value (two-tailed)",
+    dfLabel: "Degrees of freedom",
+    ciLabel: "95% confidence interval",
+    significantYes: "Significant at α = 0.05",
+    significantNo: "Not significant at α = 0.05",
+    effectSizeLabel: "Effect size (Cohen's d)",
+    effectNegligible: "Negligible",
+    effectSmall: "Small",
+    effectMedium: "Medium",
+    effectLarge: "Large",
+    welchNote: "Welch's t-test is used, so the groups need not be equal in size or variance.",
+    independenceCaveat: "These are country-year panel observations, so repeated measurements of the same country are not independent. Read the p-values as descriptive, not confirmatory.",
+    corrMatrixTitle: "Correlation matrix",
+    corrMatrixDesc: "Pearson r for every pair of indicators within the current scope.",
+    slopeCiLabel: "95% CI for the slope",
+    adjustedR2Label: "Adjusted R²",
+    residualSeLabel: "Residual standard error",
+    predictionIntervalLabel: "95% prediction interval",
+    extrapolationWarning: "This value falls outside the observed range of X, so the forecast is an extrapolation.",
+    observedRange: "Observed range",
+    trendTitle: "Change over time",
+    trendDesc: "Annualised rate of change per country for the selected indicator.",
+    trendCagr: "CAGR",
+    trendChange: "Total change",
+    trendPerYear: "Per year",
+    themeLight: "Light",
+    themeDark: "Dark",
+    toggleCountries: "Show or hide countries"
   },
   fa: {
     appName: "تحلیل آماری بهداشت و درمان خاورمیانه",
@@ -322,7 +403,55 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     olsDesc: "خط مستقیمی را پیدا می‌کند که مجموع مجذورات فواصل عمودی نقاط از خط را کمینه کند:",
     olsMath: "Y = β₀ + β₁X + ε, که در آن β₁ = Σ[(X_i - X_mean)(Y_i - Y_mean)] / Σ(X_i - X_mean)²",
     dataSources: "مجموعه داده مرجع و معتبر علمی",
-    dataSourcesDesc: "داده‌های چندکشوری استفاده شده در این سیستم از داده‌های بانک جهانی و سازمان جهانی بهداشت (WHO) اقتباس شده‌اند. روندها کاملاً منطبق بر واقعیات خاورمیانه است و نوسانات تاریخی مانند پاندمی نیز در آن اعمال گردیده تا قدرت تحلیل بلادرنگ موتور برنامه نشان داده شود."
+    dataSourcesDesc: "داده‌های چندکشوری استفاده شده در این سیستم از داده‌های بانک جهانی و سازمان جهانی بهداشت (WHO) اقتباس شده‌اند. روندها کاملاً منطبق بر واقعیات خاورمیانه است و نوسانات تاریخی مانند پاندمی نیز در آن اعمال گردیده تا قدرت تحلیل بلادرنگ موتور برنامه نشان داده شود.",
+
+    // --- Added: scope, inference, export and theme strings ---
+    selectIndicator: "شاخص",
+    scopeTitle: "دامنه تحلیل",
+    scopeDesc: "همه اعداد این صفحه بر پایه مشاهداتی که اینجا انتخاب می‌کنید دوباره محاسبه می‌شوند.",
+    scopeCountries: "کشورها",
+    scopeYears: "سال‌ها",
+    scopeObservations: "مشاهده در دامنه انتخابی",
+    scopePresetAll: "همه کشورها",
+    scopePresetGcc: "فقط کشورهای GCC",
+    scopePresetNonGcc: "فقط کشورهای غیر GCC",
+    scopeReset: "بازنشانی",
+    scopeTooFew: "برای انجام این محاسبات دست‌کم سه مشاهده انتخاب کنید.",
+    noDataScope: "هیچ مشاهده‌ای با دامنه فعلی مطابقت ندارد.",
+    selectAll: "انتخاب همه",
+    clearAll: "پاک کردن",
+    exportCsv: "دریافت فایل CSV",
+    exportJson: "دریافت فایل JSON",
+    copyLink: "کپی پیوند این نما",
+    copied: "کپی شد",
+    pValueLabel: "مقدار p (دو دامنه)",
+    dfLabel: "درجه آزادی",
+    ciLabel: "فاصله اطمینان ۹۵٪",
+    significantYes: "معنادار در سطح α = ۰٫۰۵",
+    significantNo: "بدون معناداری در سطح α = ۰٫۰۵",
+    effectSizeLabel: "اندازه اثر (d کوهن)",
+    effectNegligible: "ناچیز",
+    effectSmall: "کوچک",
+    effectMedium: "متوسط",
+    effectLarge: "بزرگ",
+    welchNote: "از آزمون t وِلچ استفاده شده است؛ بنابراین لازم نیست دو گروه حجم یا واریانس برابر داشته باشند.",
+    independenceCaveat: "این داده‌ها از نوع پانل کشور-سال هستند، پس مشاهدات مکرر یک کشور مستقل از هم نیستند. مقادیر p را توصیفی در نظر بگیرید، نه تأییدی.",
+    corrMatrixTitle: "ماتریس همبستگی",
+    corrMatrixDesc: "ضریب پیرسون برای همه جفت‌های شاخص در دامنه انتخابی.",
+    slopeCiLabel: "فاصله اطمینان ۹۵٪ شیب خط",
+    adjustedR2Label: "R² تعدیل‌شده",
+    residualSeLabel: "خطای استاندارد باقیمانده‌ها",
+    predictionIntervalLabel: "بازه پیش‌بینی ۹۵٪",
+    extrapolationWarning: "این مقدار بیرون از دامنه مشاهده‌شده X است، بنابراین پیش‌بینی نوعی برون‌یابی محسوب می‌شود.",
+    observedRange: "دامنه مشاهده‌شده",
+    trendTitle: "تغییرات در طول زمان",
+    trendDesc: "نرخ تغییر سالانه هر کشور برای شاخص انتخاب‌شده.",
+    trendCagr: "نرخ رشد مرکب سالانه",
+    trendChange: "تغییر کل",
+    trendPerYear: "در هر سال",
+    themeLight: "روشن",
+    themeDark: "تیره",
+    toggleCountries: "نمایش یا پنهان کردن کشورها"
   },
   tr: {
     appName: "Orta Doğu Sağlık Analitiği",
@@ -417,7 +546,55 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     olsDesc: "Gözlemlenen veri noktalarının model çizgisine olan dikey mesafelerinin kareleri toplamını en aza indiren en uygun doğruyu bulur:",
     olsMath: "Y = β₀ + β₁X + ε, burada β₁ = Σ[(X_i - X_mean)(Y_i - Y_mean)] / Σ(X_i - X_mean)²",
     dataSources: "Bilimsel Referans Veri Seti",
-    dataSourcesDesc: "Kullanılan çok taraflı havuz verileri, Dünya Sağlık Örgütü (WHO) ve Dünya Bankası verilerine göre hazırlanmıştır. Dinamik analiz motorunun gerçekçiliğini göstermek maksadıyla veri seti, pandemi dönemi gibi gerçek tarihi dalgalanmaları ve trendleri yansıtmaktadır."
+    dataSourcesDesc: "Kullanılan çok taraflı havuz verileri, Dünya Sağlık Örgütü (WHO) ve Dünya Bankası verilerine göre hazırlanmıştır. Dinamik analiz motorunun gerçekçiliğini göstermek maksadıyla veri seti, pandemi dönemi gibi gerçek tarihi dalgalanmaları ve trendleri yansıtmaktadır.",
+
+    // --- Added: scope, inference, export and theme strings ---
+    selectIndicator: "Gösterge",
+    scopeTitle: "Analiz kapsamı",
+    scopeDesc: "Bu sayfadaki tüm değerler, burada seçtiğiniz gözlemlere göre yeniden hesaplanır.",
+    scopeCountries: "Ülkeler",
+    scopeYears: "Yıllar",
+    scopeObservations: "gözlem kapsam içinde",
+    scopePresetAll: "Tüm ülkeler",
+    scopePresetGcc: "Yalnızca KİK ülkeleri",
+    scopePresetNonGcc: "Yalnızca KİK dışı ülkeler",
+    scopeReset: "Sıfırla",
+    scopeTooFew: "Bu hesaplamalar için en az üç gözlem seçin.",
+    noDataScope: "Geçerli kapsamla eşleşen gözlem yok.",
+    selectAll: "Tümünü seç",
+    clearAll: "Temizle",
+    exportCsv: "CSV indir",
+    exportJson: "JSON indir",
+    copyLink: "Bu görünümün bağlantısını kopyala",
+    copied: "Kopyalandı",
+    pValueLabel: "p değeri (çift yönlü)",
+    dfLabel: "Serbestlik derecesi",
+    ciLabel: "%95 güven aralığı",
+    significantYes: "α = 0,05 düzeyinde anlamlı",
+    significantNo: "α = 0,05 düzeyinde anlamlı değil",
+    effectSizeLabel: "Etki büyüklüğü (Cohen d)",
+    effectNegligible: "İhmal edilebilir",
+    effectSmall: "Küçük",
+    effectMedium: "Orta",
+    effectLarge: "Büyük",
+    welchNote: "Welch t-testi kullanılır; bu nedenle grupların büyüklüğünün veya varyansının eşit olması gerekmez.",
+    independenceCaveat: "Veriler ülke-yıl panel gözlemleridir, dolayısıyla aynı ülkenin tekrarlı ölçümleri bağımsız değildir. p değerlerini doğrulayıcı değil betimleyici olarak okuyun.",
+    corrMatrixTitle: "Korelasyon matrisi",
+    corrMatrixDesc: "Geçerli kapsam içinde her gösterge çifti için Pearson r değeri.",
+    slopeCiLabel: "Eğim için %95 güven aralığı",
+    adjustedR2Label: "Düzeltilmiş R²",
+    residualSeLabel: "Artık standart hatası",
+    predictionIntervalLabel: "%95 tahmin aralığı",
+    extrapolationWarning: "Bu değer X'in gözlenen aralığının dışında kalıyor; dolayısıyla tahmin bir dış kestirimdir.",
+    observedRange: "Gözlenen aralık",
+    trendTitle: "Zaman içindeki değişim",
+    trendDesc: "Seçilen gösterge için ülke başına yıllık değişim oranı.",
+    trendCagr: "Yıllık bileşik büyüme oranı",
+    trendChange: "Toplam değişim",
+    trendPerYear: "Yıl başına",
+    themeLight: "Açık",
+    themeDark: "Koyu",
+    toggleCountries: "Ülkeleri göster veya gizle"
   },
   az: {
     appName: "Yaxın Şərq Səhiyyə Analitikası",
@@ -473,7 +650,7 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     corrFormulaStr: "r = Σ(x - x̅)(y - y̅) / √[Σ(x - x̅)² Σ(y - y̅)²]",
     corrInterpretation: "Korelyasiya Yozulması Təlimatı",
     corrOutcome: "Hesablanmış Korelyasiya Əmsalı ($r$):",
-    corrInterpretationText: "+1-ə yaxın r dəyəri güclü müsbət əlaqəni, -1-ə yaxın dəyər güclü mənfi (tərs) əlaqəni, 0 behaves isə heç bir doğrusal əlaqə olmadığını göstərir.",
+    corrInterpretationText: "+1-ə yaxın r dəyəri güclü müsbət əlaqəni, -1-ə yaxın dəyər güclü mənfi (tərs) əlaqəni, 0-a yaxın dəyər isə heç bir xətti əlaqə olmadığını göstərir.",
     corrResultStrongNeg: "Güclü Tərs Əlaqə: Əhəmiyyətli dərəcədə mənfi əlaqə. Bir göstəricinin artması digərinin azalması ilə güclü şəkildə bağlıdır.",
     corrResultWeakNeg: "Zəif və ya Orta Tərs Əlaqə: Müəyyən dərəcədə mənfi istiqamət mövcuddur, lakin digər kənar və sosial amillərin təsiri böyükdür.",
     corrResultStrongPos: "Güclü Müsbət Əlaqə: Çox güclü doğrusal uzlaşma. Səhiyyə infrastruktur xərclərinin artması əhalinin sağlamlıq göstəricilərinin yüksəlməsi ilə birbaşa əlaqəlidir.",
@@ -512,6 +689,54 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     olsDesc: "Gözlənilən məlumat nöqtələrinin model xəttinə olan şaquli məsafələrinin kvadratlarının cəminin minimuma endirən ən uyğun düz xətti təyin edir:",
     olsMath: "Y = β₀ + β₁X + ε, burada β₁ = Σ[(X_i - X_mean)(Y_i - Y_mean)] / Σ(X_i - X_mean)²",
     dataSources: "Elmi İstinad Məlumat Bazası",
-    dataSourcesDesc: "Tədqiqat üçün istifadə olunmuş məlumatlar, Ümumdünya Səhiyyə Təşkilatı (WHO) və Dünya Bankının rəsmi statistik hesabatları əsasında formalaşdırılmışdır. Real-vaxtda riyazi dəyişiklikləri izləməyi əyani etmək üçün, pandemiya kimi tarixi böhran dövrlərinin təsirləri verilənlər bazasına daxil edilmişdir."
+    dataSourcesDesc: "Tədqiqat üçün istifadə olunmuş məlumatlar, Ümumdünya Səhiyyə Təşkilatı (WHO) və Dünya Bankının rəsmi statistik hesabatları əsasında formalaşdırılmışdır. Real-vaxtda riyazi dəyişiklikləri izləməyi əyani etmək üçün, pandemiya kimi tarixi böhran dövrlərinin təsirləri verilənlər bazasına daxil edilmişdir.",
+
+    // --- Added: scope, inference, export and theme strings ---
+    selectIndicator: "Göstərici",
+    scopeTitle: "Təhlil əhatəsi",
+    scopeDesc: "Bu səhifədəki bütün rəqəmlər burada seçdiyiniz müşahidələr əsasında yenidən hesablanır.",
+    scopeCountries: "Ölkələr",
+    scopeYears: "İllər",
+    scopeObservations: "müşahidə əhatə daxilində",
+    scopePresetAll: "Bütün ölkələr",
+    scopePresetGcc: "Yalnız KƏŞ ölkələri",
+    scopePresetNonGcc: "Yalnız KƏŞ-dən kənar ölkələr",
+    scopeReset: "Sıfırla",
+    scopeTooFew: "Bu hesablamalar üçün ən azı üç müşahidə seçin.",
+    noDataScope: "Cari əhatəyə uyğun müşahidə yoxdur.",
+    selectAll: "Hamısını seç",
+    clearAll: "Təmizlə",
+    exportCsv: "CSV yüklə",
+    exportJson: "JSON yüklə",
+    copyLink: "Bu görünüşün keçidini kopyala",
+    copied: "Kopyalandı",
+    pValueLabel: "p dəyəri (ikitərəfli)",
+    dfLabel: "Sərbəstlik dərəcəsi",
+    ciLabel: "95% etibar intervalı",
+    significantYes: "α = 0,05 səviyyəsində əhəmiyyətli",
+    significantNo: "α = 0,05 səviyyəsində əhəmiyyətli deyil",
+    effectSizeLabel: "Effekt ölçüsü (Cohen d)",
+    effectNegligible: "Nəzərəçarpmaz",
+    effectSmall: "Kiçik",
+    effectMedium: "Orta",
+    effectLarge: "Böyük",
+    welchNote: "Welch t-testi istifadə olunur, ona görə qrupların həcmi və ya dispersiyası bərabər olmaya bilər.",
+    independenceCaveat: "Bunlar ölkə-il panel müşahidələridir, buna görə eyni ölkənin təkrar ölçmələri müstəqil deyil. p dəyərlərini təsdiqedici yox, təsviri kimi oxuyun.",
+    corrMatrixTitle: "Korelyasiya matrisi",
+    corrMatrixDesc: "Cari əhatə daxilində hər göstərici cütü üçün Pirson r dəyəri.",
+    slopeCiLabel: "Meyl üçün 95% etibar intervalı",
+    adjustedR2Label: "Düzəldilmiş R²",
+    residualSeLabel: "Qalıqların standart səhvi",
+    predictionIntervalLabel: "95% proqnoz intervalı",
+    extrapolationWarning: "Bu dəyər X-in müşahidə olunan diapazonundan kənardadır, ona görə proqnoz ekstrapolyasiyadır.",
+    observedRange: "Müşahidə olunan diapazon",
+    trendTitle: "Zaman içində dəyişmə",
+    trendDesc: "Seçilmiş göstərici üzrə hər ölkə üçün illik dəyişmə sürəti.",
+    trendCagr: "İllik bileşik artım sürəti",
+    trendChange: "Ümumi dəyişmə",
+    trendPerYear: "İllik",
+    themeLight: "İşıqlı",
+    themeDark: "Tünd",
+    toggleCountries: "Ölkələri göstər və ya gizlət"
   }
 };
