@@ -1,13 +1,54 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Middle East Healthcare Analytics</title>
+    <meta
+      name="description"
+      content="Interactive dashboard for comparing healthcare indicators across eight Middle Eastern countries, with correlation, regression and group-comparison analysis computed in the browser."
+    />
+    <meta name="theme-color" content="#0d9488" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Middle East Healthcare Analytics" />
+    <meta
+      property="og:description"
+      content="Compare life expectancy, health spending, infant mortality and care capacity across the Middle East."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d9488'/%3E%3Cpath d='M6 17h4l2-5 3 10 3-8 2 3h6' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+
+    <script>
+      // Apply the saved theme before first paint to avoid a flash of light UI.
+      (function () {
+        try {
+          var saved = localStorage.getItem('me-health-theme');
+          var prefersDark =
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (saved === 'dark' || (!saved && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          /* Storage unavailable; fall back to the light theme. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      This dashboard performs its statistical calculations in the browser and
+      needs JavaScript enabled.
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

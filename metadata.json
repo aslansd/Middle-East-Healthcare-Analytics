@@ -1,6 +1,6 @@
 {
   "name": "Middle East Healthcare Analytics",
-  "description": "An interactive multilingual dashboard exploring and analyzing key healthcare metrics in the Middle East across multiple languages.",
+  "description": "An interactive multilingual dashboard for exploring and statistically analysing healthcare indicators across the Middle East.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
